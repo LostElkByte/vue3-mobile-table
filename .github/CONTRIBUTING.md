@@ -16,7 +16,7 @@ We are excited that you are interested in contributing to Vue3 Mobile Table. Bef
 
 - For feature requests, describe the problem, your proposed solution, and your use case.
 
-- For general usage questions, please use [Discussions](https://github.com/LostElkByte/vue3-mobile-table/discussions).
+- For general usage questions, please refer to the [documentation](https://lostelkbyte.github.io/vue3-mobile-table/).
 
 ## Pull Request Guidelines
 
@@ -244,7 +244,7 @@ Releases are handled by the maintainers:
 
 ## Need Help?
 
-- 📖 Read the [documentation](https://github.com/LostElkByte/vue3-mobile-table)
+- 📖 Read the [documentation](https://lostelkbyte.github.io/vue3-mobile-table/)
 - 💬 Open an [Issue](https://github.com/LostElkByte/vue3-mobile-table/issues)
 - 📧 Contact the maintainers
 

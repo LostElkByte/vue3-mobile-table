@@ -1,8 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Discussions
-    url: https://github.com/LostElkByte/vue3-mobile-table/discussions
-    about: Ask questions and discuss ideas with the community
   - name: 📖 Documentation
-    url: https://github.com/LostElkByte/vue3-mobile-table#readme
+    url: https://lostelkbyte.github.io/vue3-mobile-table/
     about: Read the documentation for usage and examples
