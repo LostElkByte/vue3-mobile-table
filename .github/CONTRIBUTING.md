@@ -6,11 +6,17 @@ We are excited that you are interested in contributing to Vue3 Mobile Table. Bef
 
 ## Issue Guidelines
 
-- Issues are exclusively for bug reports, feature requests and design-related topics. Other questions may be closed directly.
+- Issues are for bug reports, feature requests, and design-related discussions.
 
-- Before submitting an issue, please check if a similar problem has already been reported.
+- Before submitting an issue, search existing issues to avoid duplicates.
 
-- Please specify which version of `vue3-mobile-table` and `Vue` you are using, and provide OS and browser information. A minimal reproduction is recommended.
+- Please include the `vue3-mobile-table` version, Vue version, OS, and browser information.
+
+- For bugs, provide steps to reproduce and describe the expected vs actual behavior. A minimal reproduction (StackBlitz, CodeSandbox, etc.) is highly recommended.
+
+- For feature requests, describe the problem, your proposed solution, and your use case.
+
+- For general usage questions, please use [Discussions](https://github.com/LostElkByte/vue3-mobile-table/discussions).
 
 ## Pull Request Guidelines
 

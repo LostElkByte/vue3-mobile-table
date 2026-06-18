@@ -8,8 +8,8 @@ body:
     attributes:
       value: |
         Thanks for suggesting a new feature!
-        
-        Please provide as much detail as possible to help us understand your request.
+
+        Please describe the problem you are trying to solve, your proposed solution, and your use case.
 
   - type: textarea
     id: problem
@@ -43,6 +43,8 @@ body:
       placeholder: |
         In my application, I need to...
         This would help me...
+    validations:
+      required: true
 
   - type: dropdown
     id: priority

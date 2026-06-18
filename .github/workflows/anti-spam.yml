@@ -1,0 +1,186 @@
+name: Anti-Spam
+
+on:
+  issues:
+    types: [opened]
+
+env:
+  DRY_RUN: false
+
+jobs:
+  spam-detection:
+    if: github.repository == 'LostElkByte/vue3-mobile-table'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Detect and handle spam issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const dryRun = process.env.DRY_RUN === 'true';
+            const issue = context.payload.issue;
+            const title = issue.title || '';
+            const body = issue.body || '';
+            const fullText = title + '\n' + body;
+            const lower = fullText.toLowerCase();
+
+            const matched = [];
+
+            function hit(label) {
+              if (!matched.includes(label)) matched.push(label);
+            }
+
+            // B1: 声誉攻击
+            const b1Keywords = [
+              '刷星', 'stargazer', '增长曲线', '脉冲式', '三无号', '空壳账号',
+              '鉴别教程', 'star farming', 'fake stars', 'bot accounts',
+              '关项目', '请自重', '举报已发出', '向社区道歉',
+            ];
+            for (const kw of b1Keywords) {
+              if (lower.includes(kw.toLowerCase())) hit(`b1:${kw}`);
+            }
+            if (
+              /\bstars?\b/i.test(fullText) &&
+              (/刷星/i.test(fullText) || /stargazer/i.test(fullText) || /增长/.test(fullText))
+            ) {
+              hit('b1:star_combo');
+            }
+
+            // B2: 短句攻击
+            const b2Keywords = [
+              '假的星', '假星', '空壳号', '赶紧清理',
+              '违规人气', '下线项目', '清除违规',
+            ];
+            for (const kw of b2Keywords) {
+              if (lower.includes(kw.toLowerCase())) hit(`b2:${kw}`);
+            }
+            if (/举报/i.test(fullText) && /github/i.test(fullText)) {
+              hit('b2:report_github');
+            }
+
+            const b1b2Hits = matched.filter((m) => m.startsWith('b1:') || m.startsWith('b2:'));
+
+            // B3: 伪装用户长文（组合规则）
+            let b3Hit = false;
+            if (/真实用户/.test(fullText) && /假|机器人|撤回/.test(fullText)) {
+              b3Hit = true;
+              hit('b3:fake_real_user');
+            }
+            if (/下载量/.test(fullText) && (/\bstars?\b/i.test(fullText) || /星/.test(fullText))) {
+              b3Hit = true;
+              hit('b3:download_star_mismatch');
+            }
+            if (/货真价实/.test(fullText) && /星/.test(fullText)) {
+              b3Hit = true;
+              hit('b3:genuine_star');
+            }
+            const demandKeywords = ['赶紧止损', '全面核查', '真实运营'];
+            const demandHits = demandKeywords.filter((kw) => fullText.includes(kw));
+            if (demandHits.length >= 2) {
+              b3Hit = true;
+              hit('b3:demand_list');
+            }
+            if (/检举/i.test(fullText) && /github/i.test(fullText)) {
+              b3Hit = true;
+              hit('b3:report_github');
+            }
+
+            const isWhitelisted =
+              /^\[(Bug|Feature)\]:/i.test(title) &&
+              /vue3-mobile-table|v?\d+\.\d+(\.\d+)?/i.test(body);
+
+            const repThreshold = isWhitelisted ? 2 : 1;
+            const reputationSpam = b1b2Hits.length >= repThreshold || b3Hit;
+
+            // A: 广告规则
+            const adKeywords = [
+              '微信', '加群', 'qq群', '推广', '引流', '接单', '外包', '培训', '兼职',
+              '免费领取', '联系方式', '刷star', '互star', '点个star', '求star', '互刷star', 'star互刷',
+              'telegram.me', 't.me/', 'discord.gg', 'casino', 'betting', 'backlink',
+              'seo service', 'hire us', 'contact us at',
+              'give a star', 'star my repo', 'star for star', 'star exchange',
+              'please star', 'mutual star',
+            ];
+            const adHits = [];
+            for (const kw of adKeywords) {
+              if (lower.includes(kw.toLowerCase())) adHits.push(kw);
+            }
+            if (/\bstars?\b/i.test(fullText)) adHits.push('star');
+
+            const urlPattern = /https?:\/\/[^\s)]+/gi;
+            const urls = fullText.match(urlPattern) || [];
+            if (urls.length >= 3) adHits.push('multiple_urls');
+
+            const uniqueAdHits = [...new Set(adHits)];
+
+            const { data: user } = await github.rest.users.getByUsername({
+              username: issue.user.login,
+            });
+            const accountAgeDays =
+              (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24);
+            const isNewAccount = accountAgeDays < 7;
+
+            const adThreshold = isWhitelisted ? 3 : 2;
+            const adSpam =
+              uniqueAdHits.length >= adThreshold ||
+              (isNewAccount && uniqueAdHits.length >= 1);
+
+            const isSpam = reputationSpam || adSpam;
+
+            if (!isSpam) {
+              core.info(`Issue #${issue.number} passed. Matches: ${matched.join(', ') || 'none'}`);
+              return;
+            }
+
+            core.warning(
+              `Issue #${issue.number} flagged. Matches: ${matched.join(', ') || uniqueAdHits.join(', ')}`,
+            );
+
+            async function ensureSpamLabel() {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'spam',
+                });
+              } catch {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'spam',
+                  color: 'd73a4a',
+                  description: 'Spam or advertising issue',
+                });
+              }
+            }
+
+            await ensureSpamLabel();
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['spam'],
+            });
+
+            if (dryRun) {
+              core.info('DRY_RUN enabled: labeled only, not closed or locked');
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: 'closed',
+              state_reason: 'not_planned',
+            });
+
+            await github.rest.issues.lock({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              lock_reason: 'spam',
+            });

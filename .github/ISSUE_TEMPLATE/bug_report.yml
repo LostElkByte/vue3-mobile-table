@@ -9,7 +9,8 @@ body:
       value: |
         Thanks for taking the time to report this bug!
 
-        Please fill out the information below to help us diagnose the issue.
+        Please provide a clear description, steps to reproduce, and the expected vs actual behavior.
+        Including your version and environment helps us diagnose the issue faster.
 
   - type: textarea
     id: description
